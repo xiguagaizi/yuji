@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:yueyu/config/app_config.dart';
+import 'package:yuji/config/app_config.dart';
 
 /*
  * header拦截器

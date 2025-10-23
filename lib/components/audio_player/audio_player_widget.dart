@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -48,9 +49,14 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
   double _playbackSpeed = 1.0;
+  Duration _countdownDuration = Duration.zero; // 倒计时剩余时间
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration?>? _durationSubscription;
   StreamSubscription<PlayerState>? _playerStateSubscription;
+  
+  // 拖拽进度相关
+  bool _isDragging = false;
+  double _dragValue = 0.0;
 
   @override
   void initState() {
@@ -72,6 +78,15 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     _audioPlayer = AudioPlayer();
     
     try {
+      // 检查音频文件是否存在（仅移动平台）
+      if (!kIsWeb) {
+        final audioFile = File(widget.audioPath);
+        if (!await audioFile.exists()) {
+          print('音频文件不存在: ${widget.audioPath}');
+          return;
+        }
+      }
+      
       // 加载音频文件
       if (kIsWeb) {
         // Web平台：使用URL加载（支持blob URLs和http URLs）
@@ -86,6 +101,11 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         if (mounted) {
           setState(() {
             _currentPosition = position;
+            // 计算倒计时：总时长 - 当前播放位置
+            _countdownDuration = _totalDuration - position;
+            if (_countdownDuration.isNegative) {
+              _countdownDuration = Duration.zero;
+            }
           });
         }
       });
@@ -95,6 +115,8 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         if (mounted && duration != null) {
           setState(() {
             _totalDuration = duration;
+            // 初始化倒计时为总时长
+            _countdownDuration = duration;
           });
         }
       });
@@ -125,6 +147,14 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
       if (_isPlaying) {
         await _audioPlayer.pause();
       } else {
+        // 检查音频文件是否存在
+        if (!kIsWeb) {
+          final audioFile = File(widget.audioPath);
+          if (!await audioFile.exists()) {
+            print('音频文件不存在，无法播放: ${widget.audioPath}');
+            return;
+          }
+        }
         await _audioPlayer.play();
       }
     } catch (e) {
@@ -138,9 +168,23 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
       _isHolding = true;
     });
     try {
+      // 检查音频文件是否存在
+      if (!kIsWeb) {
+        final audioFile = File(widget.audioPath);
+        if (!await audioFile.exists()) {
+          print('音频文件不存在，无法播放: ${widget.audioPath}');
+          setState(() {
+            _isHolding = false;
+          });
+          return;
+        }
+      }
       await _audioPlayer.play();
     } catch (e) {
       print('播放失败: $e');
+      setState(() {
+        _isHolding = false;
+      });
     }
   }
 
@@ -175,6 +219,35 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     } catch (e) {
       print('跳转失败: $e');
     }
+  }
+
+  /// 开始拖拽进度条
+  void _onDragStart() {
+    setState(() {
+      _isDragging = true;
+    });
+  }
+
+  /// 拖拽进度条
+  void _onDragUpdate(double value) {
+    if (_isDragging && _totalDuration.inMilliseconds > 0) {
+      setState(() {
+        _dragValue = value.clamp(0.0, 1.0);
+      });
+    }
+  }
+
+  /// 结束拖拽进度条
+  void _onDragEnd() {
+    if (_isDragging && _totalDuration.inMilliseconds > 0) {
+      final newPosition = Duration(
+        milliseconds: (_dragValue * _totalDuration.inMilliseconds).round(),
+      );
+      _seekTo(newPosition);
+    }
+    setState(() {
+      _isDragging = false;
+    });
   }
 
   /// 格式化时间显示
@@ -228,19 +301,32 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  LinearProgressIndicator(
-                    value: _totalDuration.inMilliseconds > 0
-                        ? _currentPosition.inMilliseconds / _totalDuration.inMilliseconds
-                        : 0,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation(widget.primaryColor ?? Colors.blue),
+                  // 可拖拽的进度条
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: widget.primaryColor ?? Colors.blue,
+                      inactiveTrackColor: Colors.grey[300],
+                      thumbColor: widget.primaryColor ?? Colors.blue,
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                      trackHeight: 3,
+                    ),
+                    child: Slider(
+                      value: _isDragging 
+                          ? _dragValue 
+                          : (_totalDuration.inMilliseconds > 0
+                              ? _currentPosition.inMilliseconds / _totalDuration.inMilliseconds
+                              : 0),
+                      onChanged: _onDragUpdate,
+                      onChangeStart: (_) => _onDragStart(),
+                      onChangeEnd: (_) => _onDragEnd(),
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 12),
             Text(
-              _formatDuration(_currentPosition),
+              _formatDuration(_countdownDuration),
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
@@ -251,16 +337,8 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
   /// 构建标准播放模式界面
   Widget _buildStandardMode() {
-    return Center(
-      child: IconButton(
-        iconSize: 56,
-        icon: Icon(
-          _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-          color: widget.primaryColor ?? Colors.blue,
-        ),
-        onPressed: _togglePlayPause,
-      ),
-    );
+    // 删除播放按钮，返回空容器
+    return const SizedBox.shrink();
   }
 
   /// 构建播放速度按钮

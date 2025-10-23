@@ -23,7 +23,7 @@ class AppConfig {
   static String directPageName = RouteName.appMain;
 
   /// 是否显示jh_debug浮动按钮
-  static const showJhDebugBtn = true;
+  static const showJhDebugBtn = false;
 
   /// 是否开启更新app
   static const isUpdateApp = true;

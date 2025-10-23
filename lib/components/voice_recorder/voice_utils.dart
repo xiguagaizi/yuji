@@ -9,70 +9,67 @@ class VoiceFileUtils {
     final directory = await _getDirectory();
     final recordDir = Directory('${directory.path}/myrecord');
     
-    print('[路径] 基础目录: ${directory.path}');
-    print('[路径] 录音目录: ${recordDir.path}');
-    
     if (!await recordDir.exists()) {
-      print('[路径] 目录不存在，创建中...');
       await recordDir.create(recursive: true);
-      print('[路径] ✅ 目录创建成功');
-    } else {
-      print('[路径] ✅ 目录已存在');
     }
     
     final filePath = '${recordDir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
-    print('[路径] 完整文件路径: $filePath');
     
     // 验证目录是否可写
     try {
       final testFile = File('${recordDir.path}/.test');
       await testFile.writeAsString('test');
       await testFile.delete();
-      print('[路径] ✅ 目录可写');
     } catch (e) {
-      print('[路径] ❌ 目录不可写: $e');
+      // 目录不可写，但继续执行
     }
     
     return filePath;
   }
 
-  /// 获取应用目录
+  /// 获取应用目录 - 使用外部存储的公共目录（持久化存储）
   static Future<Directory> _getDirectory() async {
     try {
       if (Platform.isAndroid) {
-        // Android: 优先使用外部存储的应用私有目录
-        // 路径示例: /storage/emulated/0/Android/data/com.gmc.yueyu/files
+        // Android: 使用外部存储的公共目录（Music文件夹）
+        // 路径示例: /storage/emulated/0/Music/yuji
         try {
-          final externalDir = await getExternalStorageDirectory();
-          if (externalDir != null) {
-            print('[目录] 使用外部存储应用目录: ${externalDir.path}');
-            return externalDir;
+          // 直接使用外部存储根目录下的Music文件夹
+          final musicDir = Directory('/storage/emulated/0/Music/yuji');
+          if (!await musicDir.exists()) {
+            await musicDir.create(recursive: true);
           }
+          return musicDir;
         } catch (e) {
-          print('[目录] 外部存储目录失败: $e');
+          // 如果直接路径失败，尝试使用getExternalStorageDirectory获取根路径
+          try {
+            final externalDir = await getExternalStorageDirectory();
+            if (externalDir != null) {
+              // 从应用私有目录路径中提取外部存储根路径
+              // 例如: /storage/emulated/0/Android/data/com.example.yuji/files
+              // 提取: /storage/emulated/0
+              final rootPath = externalDir.path.split('/Android/')[0];
+              final musicDir = Directory('$rootPath/Music/yuji');
+              if (!await musicDir.exists()) {
+                await musicDir.create(recursive: true);
+              }
+              return musicDir;
+            }
+          } catch (e2) {
+            // 如果都失败了，降级到应用私有目录
+          }
         }
         
-        // 如果外部存储不可用，使用内部存储
-        // 路径示例: /data/user/0/com.gmc.yueyu/files
-        try {
-          final dir = await getApplicationSupportDirectory();
-          print('[目录] 使用内部存储应用目录: ${dir.path}');
-          return dir;
-        } catch (e) {
-          print('[目录] 内部存储目录失败: $e');
-          // 最后降级到临时目录
-          final tempDir = await getTemporaryDirectory();
-          print('[目录] 降级使用临时目录: ${tempDir.path}');
-          return tempDir;
-        }
+        // 备选：使用应用私有目录
+        final dir = await getApplicationSupportDirectory();
+        return dir;
       } else {
         // iOS 使用 DocumentsDirectory
         final dir = await getApplicationDocumentsDirectory();
-        print('[目录] 使用 ApplicationDocumentsDirectory: ${dir.path}');
         return dir;
       }
     } catch (e) {
-      print('[目录] 所有尝试失败，使用临时目录: $e');
+      // 最后降级到临时目录
       return await getTemporaryDirectory();
     }
   }
@@ -84,43 +81,21 @@ class VoiceFileUtils {
       
       // 首先检查文件是否存在
       final exists = await file.exists();
-      print('[文件检查] 文件存在性: $exists, 路径: $path');
       
       if (!exists) {
-        // 检查目录是否存在
-        final dir = file.parent;
-        final dirExists = await dir.exists();
-        print('[文件检查] 父目录存在性: $dirExists, 路径: ${dir.path}');
-        
-        if (dirExists) {
-          // 列出目录内容，看看有没有相似的文件
-          final files = await dir.list().toList();
-          print('[文件检查] 目录中的文件数量: ${files.length}');
-          if (files.isNotEmpty) {
-            print('[文件检查] 目录中的文件:');
-            for (var f in files.take(5)) {
-              print('  - ${f.path}');
-            }
-          }
-        }
-        
         return false;
       }
       
       // 文件存在，检查大小
       final fileSize = await file.length();
-      print('[文件检查] 文件大小: $fileSize 字节');
       
       if (fileSize == 0) {
-        print('[文件检查] ⚠️ 文件大小为0，可能还在写入中');
         return false;
       }
       
-      print('[文件检查] ✅ 文件有效');
       return true;
       
     } catch (e) {
-      print('[文件检查] ❌ 错误: $e, 路径: $path');
       return false;
     }
   }
@@ -138,43 +113,45 @@ class VoiceFileUtils {
 class VoicePermissionUtils {
   /// 检查麦克风权限和存储权限
   static Future<bool> checkMicrophonePermission() async {
-    print('[权限] 开始检查麦克风权限...');
-    
     // 1. 检查麦克风权限
     final micStatus = await Permission.microphone.status;
-    print('[权限] 麦克风状态: $micStatus');
     
     if (!micStatus.isGranted) {
-      print('[权限] ⚠️ 麦克风权限被拒绝，尝试请求...');
       final result = await Permission.microphone.request();
-      print('[权限] 麦克风请求结果: $result');
       
       if (!result.isGranted) {
-        print('[权限] ❌ 用户拒绝了麦克风权限');
         return false;
       }
     }
     
-    // 2. 检查存储权限（Android 特定）
+    // 2. 检查存储权限（Android 特定）- 使用公共目录需要存储权限
     if (Platform.isAndroid) {
-      print('[权限] 检查存储权限...');
-      final storageStatus = await Permission.storage.status;
-      print('[权限] 存储权限状态: $storageStatus');
-      
-      if (!storageStatus.isGranted) {
-        print('[权限] ⚠️ 存储权限未授予，尝试请求...');
-        final result = await Permission.storage.request();
-        print('[权限] 存储权限请求结果: $result');
-        
-        // 存储权限不是强制的，因为我们使用应用私有目录
-        // 但获得权限可以提高兼容性
-        if (!result.isGranted) {
-          print('[权限] ⚠️ 存储权限未授予，但继续使用应用私有目录');
+      // Android 13+ 使用新的媒体权限
+      try {
+        final audioStatus = await Permission.audio.status;
+        if (!audioStatus.isGranted) {
+          final result = await Permission.audio.request();
+          if (!result.isGranted) {
+            // 音频权限被拒绝，尝试使用存储权限
+            final storageStatus = await Permission.storage.status;
+            if (!storageStatus.isGranted) {
+              await Permission.storage.request();
+            }
+          }
+        }
+      } catch (e) {
+        // 如果audio权限不支持，使用存储权限
+        try {
+          final storageStatus = await Permission.storage.status;
+          if (!storageStatus.isGranted) {
+            await Permission.storage.request();
+          }
+        } catch (e) {
+          // 权限请求失败，但继续执行
         }
       }
     }
     
-    print('[权限] ✅ 权限检查完成');
     return true;
   }
 }

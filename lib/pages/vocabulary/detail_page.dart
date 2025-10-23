@@ -238,77 +238,19 @@ class _DetailPageState extends State<DetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.arrow_back, color: Colors.white),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.article,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              '词汇详情',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 19,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
+        title: const Text('词汇详情'),
+        backgroundColor: Colors.white,
         elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4A90E2), Color(0xFF357ABD)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        centerTitle: true,
         actions: [
           if (!_isReRecording)
             IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(_isEditing ? Icons.close : Icons.edit, color: Colors.white, size: 20),
-              ),
+              icon: Icon(_isEditing ? Icons.close : Icons.edit),
               onPressed: _toggleEditMode,
             ),
           if (!_isEditing && !_isReRecording)
             PopupMenuButton<String>(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.more_vert, color: Colors.white, size: 20),
-              ),
+              icon: const Icon(Icons.more_vert),
               onSelected: (value) {
                 if (value == 'delete') {
                   _deleteRecord();
@@ -469,16 +411,6 @@ class _DetailPageState extends State<DetailPage> {
                 mode: AudioPlayerMode.holdToPlay,
                 totalDuration: _record!.audioDuration,
               ),
-              
-              const SizedBox(height: 16),
-              
-              // 标准播放模式
-              AudioPlayerWidget(
-                audioPath: _audioFilePath,
-                mode: AudioPlayerMode.standard,
-                totalDuration: _record!.audioDuration,
-                showSpeedControl: true,
-              ),
             ],
 
             // 重新录制界面
@@ -513,9 +445,8 @@ class _DetailPageState extends State<DetailPage> {
                     children: [
                       AudioPlayerWidget(
                         audioPath: _newAudioPath!,
-                        mode: AudioPlayerMode.standard,
+                        mode: AudioPlayerMode.holdToPlay,
                         totalDuration: _newAudioDuration,
-                        showSpeedControl: true,
                         primaryColor: Colors.orange,
                       ),
                       const SizedBox(height: 12),

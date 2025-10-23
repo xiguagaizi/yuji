@@ -1,4 +1,4 @@
-name: yueyu
+name: yuji
 description: A Flutter application for language learning.
 
 # The following defines the version and build number for your application.
@@ -42,6 +42,9 @@ dependencies:
   just_audio: ^0.9.39  # 音频播放
   uuid: ^4.5.1  # UUID生成
   intl: 0.20.2  # 日期格式化 (需要匹配flutter_localizations的版本)
+  file_picker: ^8.3.7  # 文件选择器
+  open_file: ^3.3.2  # 打开文件
+  vibration: ^2.0.0  # 震动反馈
 
 dev_dependencies:
   flutter_test:
@@ -85,7 +88,7 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "asset/icon/yueyu_icon.png"
+  image_path: "asset/icon/yuji_icon.png"
   remove_alpha_ios: true
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "asset/icon/yueyu_icon.png"
+  adaptive_icon_foreground: "asset/icon/yuji_icon.png"

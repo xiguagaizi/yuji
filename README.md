@@ -396,7 +396,7 @@ class _testDemoState extends State<testDemo>{
 安卓权限配置文件 android\app\src\main\AndroidManifest.xml
 
 ```xml
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.gmc.yueyu">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.gmc.yuji">
     <!-- 添加读写权限 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
         <!--  Android 10（API 29） -->

@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/vocabulary_record.m.dart';
+import '../config/storage_config.dart';
 
 /// 词汇数据服务
 class VocabularyService {
@@ -11,64 +11,24 @@ class VocabularyService {
   VocabularyService._internal();
 
   final Uuid _uuid = const Uuid();
-  
-  /// 数据存储根目录
-  String? _dataDirectory;
-  
-  /// 音频文件目录
-  String? _audioDirectory;
-  
-  /// metadata.json 文件路径
-  String? _metadataFilePath;
+  final StorageConfig _storageConfig = StorageConfig();
   
   /// 内存中的记录列表
   List<VocabularyRecord> _records = [];
   
-  /// 获取数据存储目录
+  /// 获取数据存储目录（持久化存储）
   Future<String> get dataDirectory async {
-    if (_dataDirectory != null) {
-      return _dataDirectory!;
-    }
-    
-    final appDocDir = await getApplicationDocumentsDirectory();
-    _dataDirectory = '${appDocDir.path}/yueyu_notes';
-    
-    // 确保目录存在
-    final dir = Directory(_dataDirectory!);
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    
-    return _dataDirectory!;
+    return await _storageConfig.persistentDataDirectory;
   }
   
-  /// 获取音频目录
+  /// 获取音频目录（持久化存储）
   Future<String> get audioDirectory async {
-    if (_audioDirectory != null) {
-      return _audioDirectory!;
-    }
-    
-    final dataDir = await dataDirectory;
-    _audioDirectory = '$dataDir/audios';
-    
-    // 确保目录存在
-    final dir = Directory(_audioDirectory!);
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    
-    return _audioDirectory!;
+    return await _storageConfig.audioDirectory;
   }
   
-  /// 获取 metadata.json 文件路径
+  /// 获取 metadata.json 文件路径（持久化存储）
   Future<String> get metadataFilePath async {
-    if (_metadataFilePath != null) {
-      return _metadataFilePath!;
-    }
-    
-    final dataDir = await dataDirectory;
-    _metadataFilePath = '$dataDir/metadata.json';
-    return _metadataFilePath!;
+    return await _storageConfig.metadataFilePath;
   }
   
   /// 初始化服务，加载数据
@@ -119,11 +79,7 @@ class VocabularyService {
       rethrow;
     }
   }
-  
-  /// 获取所有记录
-  List<VocabularyRecord> getAllRecords() {
-    return List.unmodifiable(_records);
-  }
+
   
   /// 根据ID获取记录
   VocabularyRecord? getRecordById(String id) {
@@ -237,6 +193,11 @@ class VocabularyService {
     }
   }
   
+  /// 获取所有记录
+  List<VocabularyRecord> getAllRecords() {
+    return List.unmodifiable(_records);
+  }
+  
   /// 搜索记录（搜索词汇和备注）
   List<VocabularyRecord> searchRecords(String keyword) {
     if (keyword.isEmpty) {
@@ -331,6 +292,24 @@ class VocabularyService {
       }
     } catch (e) {
       print('重新录制音频失败: $e');
+      rethrow;
+    }
+  }
+
+  /// 批量导入记录（用于备份恢复）
+  Future<void> importRecords(List<VocabularyRecord> records) async {
+    try {
+      // 确保数据目录存在
+      final dataDir = await dataDirectory;
+      final dataDirFile = Directory(dataDir);
+      if (!await dataDirFile.exists()) {
+        await dataDirFile.create(recursive: true);
+      }
+      
+      _records = List.from(records);
+      await _saveMetadata();
+    } catch (e) {
+      print('批量导入记录失败: $e');
       rethrow;
     }
   }

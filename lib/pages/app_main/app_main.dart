@@ -11,8 +11,10 @@ import '../../config/app_env.dart' show appEnv, ENV;
 import '../../config/app_config.dart';
 import '../../components/exit_app_interceptor/exit_app_interceptor.dart';
 import '../../provider/global.p.dart';
+import '../../provider/vocabulary_store.p.dart';
 import '../vocabulary/record_page.dart';
 import '../vocabulary/view_page.dart';
+import '../backup/backup_page.dart';
 
 /// [params] 别名路由传递的参数
 /// [params.pageId] 跳转到指定tab页面（0第一页）
@@ -39,22 +41,33 @@ class _AppMainState extends State<AppMain>
   bool physicsFlag = true; // 是否禁止左右滑动跳转tab
   late GlobalStore appPageStore;
   late PageController pageController;
+  
+  // 用于访问子页面方法的GlobalKey
+  final GlobalKey<State<RecordPage>> _recordPageKey = GlobalKey<State<RecordPage>>();
+  final GlobalKey<State<ViewPage>> _viewPageKey = GlobalKey<State<ViewPage>>();
+  
   @override
   bool get wantKeepAlive => true;
 
   // app主页底部bar
-  final List<Map<String, dynamic>> appBottomBar = [
+  List<Map<String, dynamic>> get appBottomBar => [
     {
       'title': '记录',
       'icon': Icons.edit_note_outlined,
       'activeIcon': Icons.edit_note,
-      'body': const RecordPage(),
+      'body': RecordPage(key: _recordPageKey),
     },
     {
       'title': '查看',
       'icon': Icons.library_books_outlined,
       'activeIcon': Icons.library_books,
-      'body': const ViewPage(),
+      'body': ViewPage(key: _viewPageKey),
+    },
+    {
+      'title': '备份',
+      'icon': Icons.backup_outlined,
+      'activeIcon': Icons.backup,
+      'body': const BackupPage(),
     },
   ];
 
@@ -221,6 +234,11 @@ class _AppMainState extends State<AppMain>
               currentIndex = idx;
             });
             pageController.jumpToPage(idx); // 跳转
+            
+            // 切换tab时自动刷新数据（除了备份页面）
+            if (idx != 2) { // 备份页面索引为2，不刷新
+              _refreshCurrentPageData(idx);
+            }
           },
           items: _generateBottomBars(), // 底部菜单导航
         ),
@@ -236,6 +254,44 @@ class _AppMainState extends State<AppMain>
           .toList();
     } catch (e) {
       throw Exception('appBottomBar变量缺少body参数，errorMsg:$e');
+    }
+  }
+
+  /// 刷新当前页面数据
+  void _refreshCurrentPageData(int pageIndex) {
+    try {
+      // 根据页面索引刷新对应数据
+      switch (pageIndex) {
+        case 0: // 记录页面
+          _refreshRecordPage();
+          break;
+        case 1: // 查看页面
+          _refreshViewPage();
+          break;
+        // 索引2是备份页面，不刷新
+      }
+    } catch (e) {
+      print('刷新页面数据失败: $e');
+    }
+  }
+
+  /// 刷新记录页面数据
+  void _refreshRecordPage() {
+    // 直接调用子页面的刷新方法
+    final state = _recordPageKey.currentState;
+    if (state != null && state.mounted) {
+      // 使用动态调用，因为refreshPageData方法在具体的State类中
+      (state as dynamic).refreshPageData();
+    }
+  }
+
+  /// 刷新查看页面数据
+  void _refreshViewPage() {
+    // 直接调用子页面的刷新方法
+    final state = _viewPageKey.currentState;
+    if (state != null && state.mounted) {
+      // 使用动态调用，因为refreshPageData方法在具体的State类中
+      (state as dynamic).refreshPageData();
     }
   }
 

@@ -19,7 +19,7 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
   Map<String, List<VocabularyRecord>> _groupedRecords = {};
   bool _isSearching = false;
   bool _isLoading = true;
-
+  
   @override
   bool get wantKeepAlive => true;
 
@@ -27,8 +27,6 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
   void initState() {
     super.initState();
     _loadRecords();
-    
-    // 监听搜索输入
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -39,11 +37,14 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
     super.dispose();
   }
 
+  /// 页面刷新方法
+  void refreshPageData() {
+    _loadRecords();
+  }
+
   /// 加载词汇记录
   Future<void> _loadRecords() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final vocabularyStore = Provider.of<VocabularyStore>(context, listen: false);
@@ -52,9 +53,7 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
     } catch (e) {
       print('加载记录失败: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
@@ -62,21 +61,17 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
   void _updateDisplayRecords() {
     final vocabularyStore = Provider.of<VocabularyStore>(context, listen: false);
     
-    if (_searchController.text.isEmpty) {
-      // 显示所有记录，按日期分组
-      setState(() {
+    setState(() {
+      if (_searchController.text.isEmpty) {
         _isSearching = false;
         _groupedRecords = vocabularyStore.getGroupedRecords();
         _displayRecords = vocabularyStore.getAllRecords();
-      });
-    } else {
-      // 搜索模式
-      setState(() {
+      } else {
         _isSearching = true;
         _displayRecords = vocabularyStore.searchRecords(_searchController.text);
         _groupedRecords = {};
-      });
-    }
+      }
+    });
   }
 
   /// 搜索输入变化
@@ -84,44 +79,22 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
     _updateDisplayRecords();
   }
 
-  /// 删除记录（这个方法暂时不用，删除功能已经在 Dismissible 中实现）
-  @Deprecated('使用 Dismissible 中的删除逻辑')
+  /// 删除记录
   Future<void> _deleteRecord(VocabularyRecord record) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('确定要删除「${record.word}」吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        final vocabularyStore = Provider.of<VocabularyStore>(context, listen: false);
-        await vocabularyStore.deleteRecord(record.id);
-        _updateDisplayRecords();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('删除成功')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('删除失败: $e')),
-          );
-        }
+    try {
+      final vocabularyStore = Provider.of<VocabularyStore>(context, listen: false);
+      await vocabularyStore.deleteRecord(record.id);
+      _updateDisplayRecords();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('删除成功')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('删除失败: $e')),
+        );
       }
     }
   }
@@ -135,7 +108,6 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
       ),
     );
 
-    // 从详情页返回后刷新列表
     if (result == true) {
       _updateDisplayRecords();
     }
@@ -147,93 +119,16 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
     
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // 去掉返回按钮
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.library_books,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              '词汇笔记',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
+        title: const Text('词汇笔记'),
+        backgroundColor: Colors.white,
         elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4A90E2), Color(0xFF357ABD)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
           // 搜索框
-          Container(
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 15,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '搜索词汇或备注',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF4A90E2)),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear, color: Colors.grey[400]),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(28),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(28),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(28),
-                  borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-
+          _buildSearchBar(),
           // 记录列表
           Expanded(
             child: _isLoading
@@ -241,6 +136,52 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
                 : _buildRecordsList(),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 构建搜索框
+  Widget _buildSearchBar() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: '搜索词汇或备注',
+          hintStyle: TextStyle(color: Colors.grey[400]),
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF4A90E2)),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: Icon(Icons.clear, color: Colors.grey[400]),
+                  onPressed: () => _searchController.clear(),
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        ),
       ),
     );
   }
@@ -305,10 +246,7 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: _displayRecords.length,
-      itemBuilder: (context, index) {
-        final record = _displayRecords[index];
-        return _buildRecordCard(record);
-      },
+      itemBuilder: (context, index) => _buildRecordCard(_displayRecords[index]),
     );
   }
 
@@ -333,218 +271,300 @@ class _ViewPageState extends State<ViewPage> with AutomaticKeepAliveClientMixin 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-          child: Row(
-            children: [
-              Container(
-                width: 4,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                VocabularyRecord.getGroupDisplayName(groupKey),
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '${records.length}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF357ABD),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        _buildGroupHeader(groupKey, records.length),
         ...records.map((record) => _buildRecordCard(record)),
         const SizedBox(height: 8),
       ],
     );
   }
 
+  /// 构建分组标题
+  Widget _buildGroupHeader(String groupKey, int count) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(
+              color: const Color(0xFF4A90E2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            VocabularyRecord.getGroupDisplayName(groupKey),
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2C3E50),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4A90E2).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$count',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF357ABD),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 构建记录卡片
   Widget _buildRecordCard(VocabularyRecord record) {
-    final keyword = _searchController.text.toLowerCase();
-    
-    return Dismissible(
-      key: Key(record.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(Icons.delete, color: Colors.white),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: _SwipeableCard(
+        onDelete: () => _deleteRecord(record),
+        onTap: () => _openDetailPage(record),
+        child: _buildCardContent(record),
       ),
-      confirmDismiss: (direction) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('确认删除'),
-            content: Text('确定要删除「${record.word}」吗？'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('删除'),
-              ),
+    );
+  }
+
+  /// 构建卡片内容
+  Widget _buildCardContent(VocabularyRecord record) {
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.white,
+              const Color(0xFF4A90E2).withOpacity(0.02),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey.withOpacity(0.15),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildCardHeader(record),
+              if (record.note.isNotEmpty) _buildCardNote(record),
+              _buildCardFooter(record),
             ],
           ),
-        );
-      },
-      onDismissed: (direction) async {
-        final vocabularyStore = Provider.of<VocabularyStore>(context, listen: false);
-        await vocabularyStore.deleteRecord(record.id);
-        _updateDisplayRecords();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('删除成功')),
-          );
-        }
-      },
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
         ),
-        child: Container(
+      ),
+    );
+  }
+
+  /// 构建卡片头部
+  Widget _buildCardHeader(VocabularyRecord record) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            record.word,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2C3E50),
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.white,
-                const Color(0xFF4A90E2).withOpacity(0.02),
+                const Color(0xFF4A90E2).withOpacity(0.15),
+                const Color(0xFF357ABD).withOpacity(0.1),
               ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.grey.withOpacity(0.15),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.headphones, size: 15, color: Color(0xFF357ABD)),
+              const SizedBox(width: 4),
+              Text(
+                record.getFormattedDuration(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF357ABD),
+                ),
               ),
             ],
           ),
-          child: InkWell(
-            onTap: () => _openDetailPage(record),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          record.word,
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2C3E50),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFF4A90E2).withOpacity(0.15),
-                              const Color(0xFF357ABD).withOpacity(0.1),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.headphones, size: 15, color: Color(0xFF357ABD)),
-                            const SizedBox(width: 4),
-                            Text(
-                              record.getFormattedDuration(),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF357ABD),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                
-                  if (record.note.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        record.note,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                          height: 1.4,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                  
-                  const SizedBox(height: 10),
-                  
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
-                      const SizedBox(width: 4),
-                      Text(
-                        record.getFormattedDate(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+        ),
+      ],
+    );
+  }
+
+  /// 构建卡片备注
+  Widget _buildCardNote(VocabularyRecord record) {
+    return Column(
+      children: [
+        const SizedBox(height: 6),
+        Text(
+          record.note,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[500],
+            height: 1.2,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  /// 构建卡片底部
+  Widget _buildCardFooter(VocabularyRecord record) {
+    return Column(
+      children: [
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
+            const SizedBox(width: 4),
+            Text(
+              record.getFormattedDate(),
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[500],
               ),
             ),
-          ),
+          ],
         ),
+      ],
+    );
+  }
+}
+
+/// 自定义可滑动卡片组件
+class _SwipeableCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onDelete;
+  final VoidCallback onTap;
+
+  const _SwipeableCard({
+    required this.child,
+    required this.onDelete,
+    required this.onTap,
+  });
+
+  @override
+  State<_SwipeableCard> createState() => _SwipeableCardState();
+}
+
+class _SwipeableCardState extends State<_SwipeableCard> {
+  double _dragOffset = 0;
+  bool _isSwiped = false;
+
+  void _handleDragUpdate(DragUpdateDetails details) {
+    if (details.delta.dx < 0) {
+      // 左滑展开
+      setState(() {
+        _dragOffset = (_dragOffset + details.delta.dx).clamp(-80.0, 0.0);
+        _isSwiped = _dragOffset < -20;
+      });
+    } else if (details.delta.dx > 0) {
+      // 右滑收起
+      setState(() {
+        _dragOffset = (_dragOffset + details.delta.dx).clamp(-80.0, 0.0);
+        _isSwiped = _dragOffset < -20;
+      });
+    }
+  }
+
+  void _handleDragEnd(DragEndDetails details) {
+    if (_dragOffset < -40) {
+      // 展开状态
+      setState(() => _isSwiped = true);
+    } else {
+      // 收起状态
+      setState(() {
+        _isSwiped = false;
+        _dragOffset = 0;
+      });
+    }
+  }
+
+  void _resetPosition() {
+    setState(() {
+      _isSwiped = false;
+      _dragOffset = 0;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        if (_isSwiped) {
+          _resetPosition();
+        } else {
+          widget.onTap();
+        }
+      },
+      onHorizontalDragUpdate: _handleDragUpdate,
+      onHorizontalDragEnd: _handleDragEnd,
+      child: Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          // 删除按钮背景
+          if (_isSwiped)
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                width: 80,
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: GestureDetector(
+                  onTap: widget.onDelete,
+                  child: const Center(
+                    child: Icon(Icons.delete, color: Colors.white, size: 24),
+                  ),
+                ),
+              ),
+            ),
+          // 卡片内容
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            transform: Matrix4.translationValues(_isSwiped ? -80 : 0, 0, 0),
+            child: widget.child,
+          ),
+        ],
       ),
     );
   }

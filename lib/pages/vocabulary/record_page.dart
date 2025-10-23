@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
@@ -26,6 +27,11 @@ class _RecordPageState extends State<RecordPage> with AutomaticKeepAliveClientMi
   int _currentRecordingDuration = 0; // 当前录音时长
   
   List<VocabularyRecord> _recentRecords = []; // 最近的录音记录
+  
+  // 页面刷新方法
+  void refreshPageData() {
+    _loadRecentRecords();
+  }
   
   // 底部播放器状态
   AudioPlayer? _bottomPlayer; // 底部播放器实例
@@ -203,44 +209,11 @@ class _RecordPageState extends State<RecordPage> with AutomaticKeepAliveClientMi
     
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.edit_note,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              '记录词汇',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
+        title: const Text('记录词汇'),
+        backgroundColor: Colors.white,
         elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4A90E2), Color(0xFF357ABD)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -360,31 +333,29 @@ class _RecordPageState extends State<RecordPage> with AutomaticKeepAliveClientMi
                       children: [
                         // 词汇输入框
                         Expanded(
-                          child: SizedBox(
-                            height: 36,
-                            child: TextField(
-                              controller: _wordController,
-                              decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.text_fields, color: Color(0xFF4A90E2), size: 18),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.grey[300]!),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
-                                ),
-                                filled: true,
-                                fillColor: Colors.white,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                          child: TextField(
+                            controller: _wordController,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.text_fields, color: Color(0xFF4A90E2), size: 18),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
                               ),
-                              maxLines: 1,
-                              textInputAction: TextInputAction.next,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                             ),
+                            maxLines: null, // 允许自动换行
+                            minLines: 1, // 最少1行
+                            textInputAction: TextInputAction.newline, // 支持换行
                           ),
                         ),
                         
@@ -398,12 +369,12 @@ class _RecordPageState extends State<RecordPage> with AutomaticKeepAliveClientMi
                             onRecordingStateChanged: _handleRecordingStateChanged,
                             onDurationChanged: _handleDurationChanged,
                             maxDuration: 300,
-                            size: 36,
+                            size: 48, // 增大录音按钮尺寸
                             showDuration: false,
                           )
                         else
                           SizedBox(
-                            height: 36,
+                            height: 48, // 调整高度与录音按钮一致
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -611,23 +582,16 @@ class _RecordPageState extends State<RecordPage> with AutomaticKeepAliveClientMi
                     ),
                     
                     if (record.note.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(8),
+                      const SizedBox(height: 6),
+                      Text(
+                        record.note,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                          height: 1.2,
                         ),
-                        child: Text(
-                          record.note,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                            height: 1.4,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                     
@@ -694,54 +658,66 @@ class _RecordPageState extends State<RecordPage> with AutomaticKeepAliveClientMi
   /// 切换列表播放/暂停
   Future<void> _toggleListPlayPause(VocabularyRecord record) async {
     try {
-      // 如果正在播放同一个记录，则暂停
-      if (_playingRecordId == record.id && _isListPlaying) {
-        await _listPlayer?.pause();
-        setState(() {
+      // 立即更新UI状态，让用户看到响应
+      setState(() {
+        if (_playingRecordId == record.id && _isListPlaying) {
+          // 如果点击的是当前播放的记录，则暂停
           _isListPlaying = false;
-        });
+        } else {
+          // 如果点击的是其他记录或未播放的记录，则开始播放
+          _playingRecordId = record.id;
+          _isListPlaying = true;
+        }
+      });
+
+      // 如果正在播放同一个记录，则暂停
+      if (_playingRecordId == record.id && !_isListPlaying) {
+        await _listPlayer?.pause();
         return;
       }
       
       // 如果正在播放不同的记录，先停止当前播放
-      if (_playingRecordId != null && _playingRecordId != record.id) {
+      if (_listPlayer != null) {
         await _listPlayer?.stop();
         await _listPlayer?.dispose();
         _listPlayer = null;
       }
       
-      // 如果是暂停状态，继续播放
-      if (_playingRecordId == record.id && !_isListPlaying) {
-        await _listPlayer?.play();
+      // 获取完整的音频文件路径
+      final vocabularyStore = Provider.of<VocabularyStore>(context, listen: false);
+      final fullAudioPath = await vocabularyStore.getAudioFilePath(record.audioPath);
+      
+      // 检查音频文件是否存在
+      final audioFile = File(fullAudioPath);
+      if (!await audioFile.exists()) {
+        Fluttertoast.showToast(msg: '音频文件不存在');
         setState(() {
-          _isListPlaying = true;
+          _isListPlaying = false;
+          _playingRecordId = null;
         });
         return;
       }
       
       // 开始播放新的记录
       _listPlayer = AudioPlayer();
-      await _listPlayer!.setFilePath(record.audioPath);
+      await _listPlayer!.setFilePath(fullAudioPath);
       
       // 监听播放完成
       _listPlayer!.playerStateStream.listen((state) {
         if (state.processingState == ProcessingState.completed) {
-          setState(() {
-            _isListPlaying = false;
-            _playingRecordId = null;
-          });
-          _listPlayer?.stop();
+          if (mounted) {
+            setState(() {
+              _isListPlaying = false;
+              _playingRecordId = null;
+            });
+          }
         }
       });
       
       await _listPlayer!.play();
-      setState(() {
-        _playingRecordId = record.id;
-        _isListPlaying = true;
-      });
     } catch (e) {
       print('播放失败: $e');
-      Fluttertoast.showToast(msg: '播放失败');
+      Fluttertoast.showToast(msg: '播放失败: ${e.toString()}');
       setState(() {
         _isListPlaying = false;
         _playingRecordId = null;
@@ -759,26 +735,26 @@ class _RecordPageState extends State<RecordPage> with AutomaticKeepAliveClientMi
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        width: 36,
-        height: 36,
+        width: 48, // 增大按钮宽度
+        height: 48, // 增大按钮高度
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: color, width: 1.5),
         ),
         child: Center(
           child: isLoading
               ? SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: 20,
+                  height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation(color),
                   ),
                 )
-              : Icon(icon, color: color, size: 18),
+              : Icon(icon, color: color, size: 22), // 增大图标尺寸
         ),
       ),
     );
