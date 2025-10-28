@@ -1,4 +1,4 @@
-# 语记
+# 语记（开发版本）
 
 <div align="center">
 
