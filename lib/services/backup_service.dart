@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../models/vocabulary_record.m.dart';
 import '../services/vocabulary_service.dart';
 import '../config/storage_config.dart';
-
+import 'package:fluttertoast/fluttertoast.dart';
 /// 备份服务
 class BackupService {
   final VocabularyService _vocabularyService = VocabularyService();
@@ -48,7 +48,7 @@ class BackupService {
     }
   }
 
-  /// 从指定目录导入数据
+  /// 从指定目录导入数据（追加模式）
   Future<void> importData(String importPath) async {
     try {
       final backupDir = await _findBackupDirectory(importPath);
@@ -56,12 +56,22 @@ class BackupService {
         throw Exception('未找到有效的备份目录');
       }
 
-      final records = await _importMetadata(backupDir.path);
-      await _clearExistingData();
-      await _importRecords(records);
-      await _importAudioFiles(backupDir.path, records);
+      final backupRecords = await _importMetadata(backupDir.path);
+      final existingRecords = _vocabularyService.getAllRecords();
+      final existingIds = existingRecords.map((r) => r.id).toSet();
+      
+      // 过滤出新记录（ID不存在的记录）
+      final newRecords = backupRecords.where((record) => !existingIds.contains(record.id)).toList();
+      
+      if (newRecords.isEmpty) {
+        print('没有新数据需要导入');
+        return;
+      }
 
-      print('数据导入完成');
+      await _vocabularyService.appendRecords(newRecords);
+      await _importAudioFiles(backupDir.path, newRecords);
+
+      Fluttertoast.showToast(msg: '数据导入成功，新增 ${newRecords.length} 条记录');
     } catch (e) {
       print('导入数据失败: $e');
       rethrow;
@@ -186,30 +196,5 @@ class BackupService {
     }
   }
 
-  /// 清空现有数据
-  Future<void> _clearExistingData() async {
-    try {
-      final dataDir = await _vocabularyService.dataDirectory;
-      final dataDirFile = Directory(dataDir);
-      
-      if (await dataDirFile.exists()) {
-        await dataDirFile.delete(recursive: true);
-      }
-      
-      // 重新初始化服务
-      await _vocabularyService.initialize();
-    } catch (e) {
-      print('清空现有数据失败: $e');
-    }
-  }
 
-  /// 导入记录
-  Future<void> _importRecords(List<VocabularyRecord> records) async {
-    try {
-      await _vocabularyService.importRecords(records);
-    } catch (e) {
-      print('导入记录失败: $e');
-      rethrow;
-    }
-  }
 }

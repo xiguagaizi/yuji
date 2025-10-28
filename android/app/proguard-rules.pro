@@ -69,3 +69,7 @@
 
 # Keep OTA update classes
 -keep class com.ota_update.** { *; }
+
+
+
+

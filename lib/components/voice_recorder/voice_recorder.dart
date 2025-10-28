@@ -176,12 +176,7 @@ class _VoiceRecorderState extends State<VoiceRecorder>
       } catch (e) {
         rethrow;
       }
-      
-      // ⚠️ 关键修复：等待音频编码器完全初始化
-      // MPEG4Writer需要足够时间来启动audio track，否则会报错
-      // "Stop() called but track is not started or stopped"
-      await Future.delayed(const Duration(milliseconds: 800));
-      
+
       // 验证录音是否真正启动
       final isNowRecording = await _audioRecorder.isRecording();
       
@@ -279,20 +274,9 @@ class _VoiceRecorderState extends State<VoiceRecorder>
       // 优先使用 stop() 返回的路径，如果为空则使用原始路径
       final audioPath = (path != null && path.isNotEmpty) ? path : _recordingPath;
       
-      // 等待文件系统刷新
-      await Future.delayed(const Duration(milliseconds: 300));
       
       // 检查文件是否存在，添加重试机制（等待文件写入完成）
       bool fileExists = await VoiceFileUtils.fileExists(audioPath);
-      
-      // 如果文件不存在，等待一小段时间后重试（最多重试5次，每次等待更长）
-      if (!fileExists) {
-        for (int i = 0; i < 5 && !fileExists; i++) {
-          final waitTime = 300 + (i * 200); // 递增等待时间：300, 500, 700, 900, 1100ms
-          await Future.delayed(Duration(milliseconds: waitTime));
-          fileExists = await VoiceFileUtils.fileExists(audioPath);
-        }
-      }
       
       if (fileExists) {
         widget.onRecordingComplete?.call(audioPath, duration);

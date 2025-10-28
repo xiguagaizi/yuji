@@ -301,7 +301,6 @@ class _AppMainState extends State<AppMain>
       return appBottomBar.asMap().entries.map<BottomNavigationBarItem>((entry) {
         final idx = entry.key;
         final itemData = entry.value;
-        final isActive = idx == currentIndex;
         
         return BottomNavigationBarItem(
           icon: Icon(

@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Android 13+ 媒体权限 -->
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- 振动权限 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     
     <!-- 文件选择器权限 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

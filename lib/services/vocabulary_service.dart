@@ -104,17 +104,7 @@ class VocabularyService {
       // 生成音频文件名
       final now = DateTime.now();
       final dateStr = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-      
-      // 查找当天已有的序号
-      final todayRecords = _records.where((r) {
-        final recordDate = r.createTime;
-        return recordDate.year == now.year &&
-               recordDate.month == now.month &&
-               recordDate.day == now.day;
-      }).toList();
-      
-      final sequence = (todayRecords.length + 1).toString().padLeft(3, '0');
-      final audioFileName = '${dateStr}_$sequence.m4a';
+      final audioFileName = '${dateStr}_${now.millisecondsSinceEpoch}.m4a';
       
       // 复制音频文件到目标位置
       final audioDir = await audioDirectory;
@@ -297,7 +287,25 @@ class VocabularyService {
   }
 
   /// 批量导入记录（用于备份恢复）
-  Future<void> importRecords(List<VocabularyRecord> records) async {
+  // Future<void> importRecords(List<VocabularyRecord> records) async {
+  //   try {
+  //     // 确保数据目录存在
+  //     final dataDir = await dataDirectory;
+  //     final dataDirFile = Directory(dataDir);
+  //     if (!await dataDirFile.exists()) {
+  //       await dataDirFile.create(recursive: true);
+  //     }
+      
+  //     _records = List.from(records);
+  //     await _saveMetadata();
+  //   } catch (e) {
+  //     print('批量导入记录失败: $e');
+  //     rethrow;
+  //   }
+  // }
+
+  /// 追加记录（用于备份导入）
+  Future<void> appendRecords(List<VocabularyRecord> records) async {
     try {
       // 确保数据目录存在
       final dataDir = await dataDirectory;
@@ -306,10 +314,15 @@ class VocabularyService {
         await dataDirFile.create(recursive: true);
       }
       
-      _records = List.from(records);
+      // 追加新记录到现有记录列表
+      _records.addAll(records);
+      
+      // 按创建时间倒序排序
+      _records.sort((a, b) => b.createTime.compareTo(a.createTime));
+      
       await _saveMetadata();
     } catch (e) {
-      print('批量导入记录失败: $e');
+      print('追加记录失败: $e');
       rethrow;
     }
   }

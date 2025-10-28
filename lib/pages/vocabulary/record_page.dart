@@ -67,8 +67,8 @@ class _RecordPageState extends State<RecordPage> with AutomaticKeepAliveClientMi
       await vocabularyStore.initialize();
       final allRecords = vocabularyStore.getAllRecords();
       setState(() {
-        // 只显示最近的10条记录
-        _recentRecords = allRecords.take(10).toList();
+        // 只显示最近的20条记录
+        _recentRecords = allRecords.take(20).toList();
       });
     } catch (e) {
       print('加载记录失败: $e');

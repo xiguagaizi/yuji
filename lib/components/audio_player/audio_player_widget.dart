@@ -142,25 +142,25 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   }
 
   /// 播放/暂停
-  Future<void> _togglePlayPause() async {
-    try {
-      if (_isPlaying) {
-        await _audioPlayer.pause();
-      } else {
-        // 检查音频文件是否存在
-        if (!kIsWeb) {
-          final audioFile = File(widget.audioPath);
-          if (!await audioFile.exists()) {
-            print('音频文件不存在，无法播放: ${widget.audioPath}');
-            return;
-          }
-        }
-        await _audioPlayer.play();
-      }
-    } catch (e) {
-      print('播放控制失败: $e');
-    }
-  }
+  // Future<void> _togglePlayPause() async {
+  //   try {
+  //     if (_isPlaying) {
+  //       await _audioPlayer.pause();
+  //     } else {
+  //       // 检查音频文件是否存在
+  //       if (!kIsWeb) {
+  //         final audioFile = File(widget.audioPath);
+  //         if (!await audioFile.exists()) {
+  //           print('音频文件不存在，无法播放: ${widget.audioPath}');
+  //           return;
+  //         }
+  //       }
+  //       await _audioPlayer.play();
+  //     }
+  //   } catch (e) {
+  //     print('播放控制失败: $e');
+  //   }
+  // }
 
   /// 按住开始播放
   Future<void> _onHoldStart() async {
@@ -201,16 +201,16 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   }
 
   /// 设置播放速度
-  Future<void> _setPlaybackSpeed(double speed) async {
-    try {
-      await _audioPlayer.setSpeed(speed);
-      setState(() {
-        _playbackSpeed = speed;
-      });
-    } catch (e) {
-      print('设置播放速度失败: $e');
-    }
-  }
+  // Future<void> _setPlaybackSpeed(double speed) async {
+  //   try {
+  //     await _audioPlayer.setSpeed(speed);
+  //     setState(() {
+  //       _playbackSpeed = speed;
+  //     });
+  //   } catch (e) {
+  //     print('设置播放速度失败: $e');
+  //   }
+  // }
 
   /// 跳转到指定位置
   Future<void> _seekTo(Duration position) async {
@@ -342,29 +342,29 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   }
 
   /// 构建播放速度按钮
-  Widget _buildSpeedButton(double speed) {
-    final isSelected = _playbackSpeed == speed;
-    return GestureDetector(
-      onTap: () => _setPlaybackSpeed(speed),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: isSelected ? (widget.primaryColor ?? Colors.blue) : Colors.white,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(
-            color: isSelected ? (widget.primaryColor ?? Colors.blue) : Colors.grey[300]!,
-          ),
-        ),
-        child: Text(
-          '${speed}x',
-          style: TextStyle(
-            fontSize: 12,
-            color: isSelected ? Colors.white : Colors.grey[700],
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildSpeedButton(double speed) {
+  //   final isSelected = _playbackSpeed == speed;
+  //   return GestureDetector(
+  //     onTap: () => _setPlaybackSpeed(speed),
+  //     child: Container(
+  //       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  //       decoration: BoxDecoration(
+  //         color: isSelected ? (widget.primaryColor ?? Colors.blue) : Colors.white,
+  //         borderRadius: BorderRadius.circular(4),
+  //         border: Border.all(
+  //           color: isSelected ? (widget.primaryColor ?? Colors.blue) : Colors.grey[300]!,
+  //         ),
+  //       ),
+  //       child: Text(
+  //         '${speed}x',
+  //         style: TextStyle(
+  //           fontSize: 12,
+  //           color: isSelected ? Colors.white : Colors.grey[700],
+  //           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 }
 

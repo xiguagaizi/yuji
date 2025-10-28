@@ -2,12 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:path/path.dart' as path;
-import 'package:open_file/open_file.dart';
 import '../../provider/vocabulary_store.p.dart';
 import '../../services/backup_service.dart';
 
@@ -94,7 +91,7 @@ class _BackupPageState extends State<BackupPage> {
             SizedBox(height: 12.h),
             Text(
               '• 导出：将当前所有笔记数据（包括录音文件）导出到指定目录\n'
-              '• 导入：从指定目录导入备份数据，会覆盖当前数据\n'
+              '• 导入：从指定目录导入备份数据，会追加当前数据\n'
               '• 建议定期备份，避免数据丢失',
               style: TextStyle(
                 fontSize: 24.sp,
@@ -255,7 +252,7 @@ class _BackupPageState extends State<BackupPage> {
             ),
             SizedBox(height: 12.h),
             Text(
-              '从指定目录导入备份数据（会覆盖当前数据）',
+              '从指定目录导入备份数据（会追加当前数据）',
               style: TextStyle(
                 fontSize: 24.sp,
                 color: Colors.grey[600],
@@ -561,23 +558,23 @@ class _BackupPageState extends State<BackupPage> {
   }
 
   /// 选择目录
-  Future<Directory?> _selectDirectory() async {
-    try {
-      // 使用 file_picker 选择目录
-      String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+  // Future<Directory?> _selectDirectory() async {
+  //   try {
+  //     // 使用 file_picker 选择目录
+  //     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
       
-      if (selectedDirectory != null) {
-        return Directory(selectedDirectory);
-      }
+  //     if (selectedDirectory != null) {
+  //       return Directory(selectedDirectory);
+  //     }
       
-      // 如果用户取消选择，返回null
-      return null;
-    } catch (e) {
-      print('选择目录失败: $e');
-      Fluttertoast.showToast(msg: '选择目录失败: $e');
-      return null;
-    }
-  }
+  //     // 如果用户取消选择，返回null
+  //     return null;
+  //   } catch (e) {
+  //     print('选择目录失败: $e');
+  //     Fluttertoast.showToast(msg: '选择目录失败: $e');
+  //     return null;
+  //   }
+  // }
 
   /// 显示导入确认对话框
   Future<bool> _showImportConfirmDialog() async {
@@ -585,7 +582,7 @@ class _BackupPageState extends State<BackupPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('确认导入'),
-        content: const Text('导入数据将覆盖当前所有数据，此操作不可撤销。确定要继续吗？'),
+        content: const Text('导入数据操作不可撤销。确定要继续吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
