@@ -2,14 +2,15 @@
 
 <div align="center">
 
+<img src="asset/icon/yuji_icon.png" alt="图标" width="250">
+
+**极简，好用的语音学习笔记应用**
+
 ![Flutter](https://img.shields.io/badge/Flutter-3.32.2-blue.svg?style=flat-square&logo=flutter)
 ![Dart](https://img.shields.io/badge/Dart-3.8.1-blue.svg?style=flat-square&logo=dart)
 ![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
 ![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-lightgrey.svg?style=flat-square)
 
-<img src="asset/icon/yuji_icon.png" alt="图标" width="250">
-
-**极简，好用的语音学习笔记应用**
 
 [功能特性](#-功能特性) • [快速开始](#-快速开始) • [项目结构](#-项目结构) • [技术栈](#-技术栈) • [贡献指南](#-贡献指南)
 
