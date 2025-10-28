@@ -218,9 +218,9 @@ flutter analyze
 ### 如何贡献
 
 1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+2. 创建特性分支 (`git checkout -b origin/dev`)
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
+4. 推送到分支 (`git push origin origin/dev`)
 5. 开启 Pull Request
 
 ### 问题反馈
